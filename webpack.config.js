@@ -6,7 +6,6 @@ const webpack = require('webpack')
 
 const NODE_ENV = process.env.NODE_ENV
 const BUILD_DIR = 'build'
-const APP_DIR = 'src'
 
 module.exports = {
     entry: {
@@ -38,7 +37,7 @@ module.exports = {
     },
 
     plugins: [
-        new CleanWebpackPlugin(['public'], {
+        new CleanWebpackPlugin(['build'], {
             root: __dirname,
             verbose: true,
             dry: false
