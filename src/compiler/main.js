@@ -20,7 +20,7 @@ op postfix '++' 31 (lhs, rhs) {
 
 func std.print(...)
  
-1+ !2
+print(1+ !2)
 
 
  

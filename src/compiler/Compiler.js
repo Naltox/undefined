@@ -212,7 +212,6 @@ function compileExpr(expression) {
             return `return ${compileExpr(expression.expr)};`
         }
         if (expression.type.type && expression.type.type === 'operator') {
-            console.log(expression)
             if (expression.right && !expression.left) {
                 return `op_${OPERATOR_ALIASES[expression.type.name]}(${compileExpr(expression.right)})`
             }
