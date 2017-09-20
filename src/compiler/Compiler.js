@@ -37,7 +37,7 @@ export default function compile(ast, tab = 0) {
             code.add(compileExpr(tree), tab)
         }
         if (tree.type === 'expr') {
-            code.add(compileExpr(tree.exr) + ';', tab)
+            code.add(compileExpr(tree.expr) + ';', tab)
         }
         if (tree.type === 'call') {
             code.add(compileExpr(tree) + ';', tab)
@@ -172,7 +172,7 @@ function compileExpr(expression) {
         if (expression.type === 'name')
             return "" + expression.name
         if (expression.type === 'expr')
-            return compileExpr(expression.exr)
+            return compileExpr(expression.expr)
         if (expression.type === '+') {
             return `plus(${compileExpr(expression.left)}, ${compileExpr(expression.right)})`
         }
@@ -212,8 +212,13 @@ function compileExpr(expression) {
             return `return ${compileExpr(expression.expr)};`
         }
         if (expression.type.type && expression.type.type === 'operator') {
+            console.log(expression)
             if (expression.right && !expression.left) {
                 return `op_${OPERATOR_ALIASES[expression.type.name]}(${compileExpr(expression.right)})`
+            }
+
+            if (expression.left && !expression.right) {
+                return `op_${OPERATOR_ALIASES[expression.type.name]}(${compileExpr(expression.left)})`
             }
 
             return `op_${OPERATOR_ALIASES[expression.type.name]}(${compileExpr(expression.left)}, ${compileExpr(expression.right)})`

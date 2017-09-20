@@ -100,14 +100,15 @@ function parseExpr(tokensStream, lhs, min_precedence) {
 
 
             if (getOperatorPrecedence(lhs) < getOperatorPrecedence(nextOp)) {
-                console.log('petooh')
+                //console.log('petooh')
 
                 lookahead = parseExpr(tokensStream, lookahead, getOperatorPrecedence(lhs) + 1)
             }
 
 
             lhs = {
-                type: 'prefix_expr',
+                type: 'expr',
+                //type: 'prefix_expr',
                 expr: {
                     type: lhs,
                     right: lookahead
@@ -115,7 +116,6 @@ function parseExpr(tokensStream, lhs, min_precedence) {
             }
             continue
         }
-
 
         if (lookahead.type) {
             if (lookahead.type === 'operator') {
@@ -140,8 +140,8 @@ function parseExpr(tokensStream, lhs, min_precedence) {
         }
 
 
-        console.log(lhs, lookahead, TEST[getOperator(lookahead)])
-        console.log(getOperatorPrecedence(lookahead), min_precedence)
+        //console.log(lhs, lookahead, TEST[getOperator(lookahead)])
+        //console.log(getOperatorPrecedence(lookahead), min_precedence)
 
 
         if (TEST[getOperator(lookahead)] === 'postfix') {
@@ -149,9 +149,10 @@ function parseExpr(tokensStream, lhs, min_precedence) {
                 return lhs
 
             tokensStream.next()
-            console.log(123)
+            //console.log(123)
             return {
-                type: 'postfix_expr',
+                type: 'expr',
+                //type: 'postfix_expr',
                 expr: {
                     type: lookahead,
                     left: lhs
@@ -166,6 +167,8 @@ function parseExpr(tokensStream, lhs, min_precedence) {
             return lhs
         }
 
+
+
         // if (lookahead.type === 'operator' && OPERATORS[lookahead.name] < min_precedence) {
         //     return lhs
         // }
@@ -178,6 +181,43 @@ function parseExpr(tokensStream, lhs, min_precedence) {
         //console.log(rhs)
 
         let nextBin = tokensStream.peek()
+
+
+        if (rhs.type && rhs.type === 'operator' && TEST[getOperator(rhs)] === 'prefix') {
+            //console.log(123123123, lhs, lookahead, min_precedence)
+            if (getOperatorPrecedence(rhs) < min_precedence)
+                return rhs
+
+
+            console.log(rhs, nextBin, lhs)
+            //tokensStream.next()
+            //let nextOp = parsePrimary(tokensStream)
+            //let nextOp = tokensStream.peek()
+
+
+            // if (getOperatorPrecedence(rhs) < getOperatorPrecedence(nextBin)) {
+            //     //console.log('petooh')
+            //
+            //     lookahead = parseExpr(tokensStream, lookahead, getOperatorPrecedence(rhs) + 1)
+            // }
+            //
+            // lhs = {
+            //     type: 'prefix_expr',
+            //     expr: {
+            //         type: rhs,
+            //         right: lookahead
+            //     }
+            // }
+            // continue
+
+            let right = parseExpr(tokensStream, rhs, getOperatorPrecedence(lookahead) + 1)
+
+            console.log(right, 123123)
+
+            rhs = right
+            //continue
+        }
+
 
         //console.log(nextBin)
         //console.log(rhs, nextBin)
@@ -193,7 +233,7 @@ function parseExpr(tokensStream, lhs, min_precedence) {
 
         lhs = {
             type: 'expr',
-            exr: {
+            expr: {
                 type: { type:'operator', name: getOperator(lookahead) },
                 //type: { type:'operator', name: getOperator(lookahead) },
                 left: lhs,
@@ -463,6 +503,8 @@ function parsePrimary(tokensStream) {
     let tok = tokensStream.next()
     let peek = tokensStream.peek()
 
+
+
     if (!tok)
         tokensStream.error()
 
@@ -575,7 +617,11 @@ function parseFunctionCall(tokensStream, funcName) {
             }
         }
 
-        args.push(parseInfixExpr(tokensStream))
+        let test  = parseInfixExpr(tokensStream)
+
+        console.log(123, test, tokensStream.peek())
+        args.push(test)
+        //args.push(parseInfixExpr(tokensStream))
 
 
 

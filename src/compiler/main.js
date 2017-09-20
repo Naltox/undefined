@@ -18,7 +18,10 @@ op postfix '++' 31 (lhs, rhs) {
     return 1
 }
 
-1+ !1
+func std.print(...)
+ 
+1+ !2
+
 
  
 `
