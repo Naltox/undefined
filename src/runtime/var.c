@@ -107,7 +107,7 @@ var varFromInt(int i) {
     return  v;
 }
 
-var_print(int num, ...) {
+std_print(int num, ...) {
     va_list valist;
 
     va_start(valist, num);

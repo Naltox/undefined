@@ -39,6 +39,6 @@ char* var2str(var v);
 
 var varFromInt(int i);
 
-var_print(int num, ...);
+std_print(int num, ...);
 
 #endif //C_TESTS_VAR_H

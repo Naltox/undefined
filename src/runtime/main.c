@@ -82,7 +82,7 @@ void freeTempString(var v, char* str) {
     }
 }
 
-var plus(var lhs, var rhs) {
+var std_plus(var lhs, var rhs) {
     if (lhs.type == INTEGER_TYPE && rhs.type == INTEGER_TYPE) {
         return varFromInt(lhs.value.i + rhs.value.i);
     }
@@ -139,7 +139,7 @@ var plus(var lhs, var rhs) {
     }
 }
 
-var minus(var lhs, var rhs) {
+var std_minus(var lhs, var rhs) {
     if (lhs.type == INTEGER_TYPE && rhs.type == INTEGER_TYPE) {
         return varFromInt(lhs.value.i - rhs.value.i);
     }
@@ -151,7 +151,7 @@ var minus(var lhs, var rhs) {
     }
 }
 
-var eq2(var lhs, var rhs) {
+var std_eq2(var lhs, var rhs) {
     if (lhs.type == INTEGER_TYPE && rhs.type == INTEGER_TYPE) {
         return varFromBool(lhs.value.i == rhs.value.i);
     }
@@ -165,7 +165,7 @@ var eq2(var lhs, var rhs) {
     return varFromBool(false);
 }
 
-var notEq2(var lhs, var rhs) {
+var std_notEq2(var lhs, var rhs) {
     if (lhs.type == INTEGER_TYPE && rhs.type == INTEGER_TYPE) {
         return varFromBool(lhs.value.i != rhs.value.i);
     }
@@ -179,11 +179,11 @@ var notEq2(var lhs, var rhs) {
     return varFromBool(true);
 }
 
-var dev(var lhs, var rhs) {
+var std_dev(var lhs, var rhs) {
     return varFromInt(lhs.value.i / rhs.value.i);
 }
 
-var mul(var lhs, var rhs) {
+var std_mul(var lhs, var rhs) {
     if (lhs.type == INTEGER_TYPE && rhs.type == INTEGER_TYPE) {
         return varFromInt(lhs.value.i * rhs.value.i);
     }
@@ -191,7 +191,7 @@ var mul(var lhs, var rhs) {
     return  NaN();
 }
 
-var less(var lhs, var rhs) {
+var std_less(var lhs, var rhs) {
     if (lhs.type == INTEGER_TYPE && rhs.type == INTEGER_TYPE) {
         return varFromBool(lhs.value.i < rhs.value.i);
     }
@@ -199,7 +199,7 @@ var less(var lhs, var rhs) {
     return varFromBool(false);
 }
 
-var greater(var lhs, var rhs) {
+var std_greater(var lhs, var rhs) {
     if (lhs.type == INTEGER_TYPE && rhs.type == INTEGER_TYPE) {
         return varFromBool(lhs.value.i > rhs.value.i);
     }
@@ -207,62 +207,70 @@ var greater(var lhs, var rhs) {
     return varFromBool(false);
 }
 
-
-var fib(var n) {
-
-
-    if (isTrue(eq2(n, varFromInt(0)))) {
-
-
-
-        return varFromInt(0);
-
-    }
-    if (isTrue(eq2(n, varFromInt(1)))) {
-
-
-
-        return varFromInt(1);
-
-    }
-    else {
-
-
-
-        return (plus(fib(minus(n, varFromInt(1))), fib(minus(n, varFromInt(2)))));
-
-    }
-    return NaN();
-
+var std_and(var lhs, var rhs) {
+    return varFromBool(true);
 }
 
 
-var test(var n) {
-    if (isTrue(greater(n, varFromInt(10)))) {
-        var_print(1, varFromString("lol"));
-    }
-    else {
-        var_print(1, varFromString("kek"));
-    }
-    return NaN();
+static inline var op_plus(var lhs, var rhs) {
+    return std_plus(lhs, rhs);
 }
-
+static inline var op_minus(var lhs, var rhs) {
+    return std_minus(lhs, rhs);
+}
+static inline var op_and(var lhs, var rhs) {
+    return std_and(lhs, rhs);
+}
+static inline var op_dev(var lhs, var rhs) {
+    return std_dev(lhs, rhs);
+}
+static inline var op_mul(var lhs, var rhs) {
+    return std_mul(lhs, rhs);
+}
+static inline var op_less(var lhs, var rhs) {
+    return std_less(lhs, rhs);
+}
+static inline var op_greater(var lhs, var rhs) {
+    return std_greater(lhs, rhs);
+}
+static inline var op_pow(var lhs, var rhs) {
+    var i = varFromInt(0);
+    while (isTrue(op_less(i, op_minus(rhs, varFromInt(1))))) {
+        lhs = op_mul(lhs, lhs);
+        i = op_plus(i, varFromInt(1));
+    }
+    return lhs;
+}
+static inline var op_eq2(var lhs, var rhs) {
+    return std_eq2(lhs, rhs);
+}
+static inline var op_notEq2(var lhs, var rhs) {
+    return std_notEq2(lhs, rhs);
+}
 
 
 
 int main() {
-    printf("Hello, World!\n");
-
-
-
-    printf("\n");
-    printf("\n");
-
-
-
-    test(varFromInt(1));
-    test(varFromInt(10));
-    test(varFromInt(11));
-
-    return 0;
+    var a = var_array_create_inline(5, varFromInt(1), varFromInt(2), varFromBool(true), varFromString("qwe"), varFromInt(1.5));
+    std_print(1, a);
+    std_print(1, op_pow(varFromInt(2), varFromInt(2)));
+    std_print(1, op_greater(varFromInt(1), varFromInt(2)));
+    std_print(1, op_greater(varFromInt(2), varFromInt(1)));
+    std_print(1, op_eq2(varFromInt(1), varFromInt(1)));
+    std_print(1, op_notEq2(varFromInt(1), varFromInt(1)));
 }
+
+
+//int main() {
+//    printf("Hello, World!\n");
+//
+//
+//
+//    printf("\n");
+//    printf("\n");
+//
+//    var a = var_array_create_inline(4, varFromInt(1), varFromInt(2), varFromBool(true), varFromString("qwe"));
+//    std_print(1, a);
+//
+//    return 0;
+//}

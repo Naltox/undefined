@@ -7,6 +7,14 @@ const PRECEDENCY = {
     '/': 40
 }
 
+let OPERATORS = {
+
+}
+
+let TEST = {
+
+}
+
 export default function parse(tokensStream) {
     let program = []
 
@@ -17,6 +25,22 @@ export default function parse(tokensStream) {
     }
 
     return program
+}
+
+function getOperatorPrecedence(operator) {
+    if (operator === undefined)
+        return
+    if (typeof operator === 'string')
+        return PRECEDENCY[operator]
+    else if (operator.type === 'name')
+        return OPERATORS[operator.name]
+}
+
+function getOperator(operator) {
+    if (typeof operator === 'string')
+        return operator
+    else if (operator.type === 'name')
+        return operator.name
 }
 
 function parseExpr(tokensStream, lhs, min_precedence) {
@@ -37,32 +61,86 @@ function parseExpr(tokensStream, lhs, min_precedence) {
             lookahead === '[' ||
             lookahead === 'while' ||
             lookahead === 'func' ||
-            lookahead === 'return' ||
-            lookahead.type
+            lookahead === '.' ||
+            lookahead === 'return' //||
+              //  lookahead.type
+            //( lookahead.type && (lookahead.type !== 'name' && OPERATORS[lookahead.name] === undefined))
         )
             return lhs
 
-        if (lookahead.type === undefined && PRECEDENCY[lookahead] < min_precedence) {
+
+
+        // if (lhs.name && TEST[lhs.name] !== undefined && TEST[lhs.name] === 'prefix' ) {
+        //     tokensStream.next()
+        //
+        //     lhs = {
+        //         type: 'expr',
+        //         exr: {
+        //             type: { type:'operator', name: getOperator(lhs) },
+        //             //type: { type:'operator', name: getOperator(lookahead) },
+        //             //left: lhs,
+        //             right: lookahead
+        //         }
+        //     }
+        //     continue
+        // }
+
+        if (lookahead.type) {
+            if (lookahead.type === 'name') {
+                if (OPERATORS[lookahead.name] === undefined) {
+                    //throw new Error('Unknown operator ' + lookahead.name)
+                    //throw new Error('Unknown operator ' + lookahead.name)
+
+                    return lhs
+                }
+                else {
+                     // lookahead = {
+                    //     type: 'operator',
+                    //     name: lookahead.name
+                    // }
+
+                    //lookahead = lookahead.name
+                }
+            }
+            else {
+                return lhs
+            }
+        }
+
+
+        if (lookahead.type === undefined && getOperatorPrecedence(lookahead) < min_precedence) {
             return lhs
         }
+
+        // if (lookahead.type === 'operator' && OPERATORS[lookahead.name] < min_precedence) {
+        //     return lhs
+        // }
 
         tokensStream.next()
 
         let rhs = parsePrimary(tokensStream)
 
+        //console.log(rhs)
 
         let nextBin = tokensStream.peek()
 
+        //console.log(nextBin)
+        //console.log(rhs, nextBin)
 
-        if (PRECEDENCY[lookahead] < PRECEDENCY[nextBin]) {
-            rhs = parseExpr(tokensStream, rhs, PRECEDENCY[lookahead] + 1)
+        // if (PRECEDENCY[lookahead] < PRECEDENCY[nextBin]) {
+        //     rhs = parseExpr(tokensStream, rhs, PRECEDENCY[lookahead] + 1)
+        // }
+
+        if (getOperatorPrecedence(lookahead) < getOperatorPrecedence(nextBin)) {
+            rhs = parseExpr(tokensStream, rhs, getOperatorPrecedence(lookahead) + 1)
         }
 
 
         lhs = {
             type: 'expr',
             exr: {
-                type: lookahead,
+                type: { type:'operator', name: getOperator(lookahead) },
+                //type: { type:'operator', name: getOperator(lookahead) },
                 left: lhs,
                 right: rhs
             }
@@ -104,23 +182,38 @@ function parseTop(tokensStream) {
 
         return {type: 'return', expr: ast}
     }
+    else if (tok === 'op') {
+        return parseOperatorDeclaration(tokensStream)
+    }
     else
         return parseInfixExpr(tokensStream)
 }
 
-// func $func_name$ ($var$, ...) { ... }
-function parseFunction(tokensStream) {
+function parseOperatorDeclaration(tokensStream) {
+    let type = 'infix'
+
+    if (tokensStream.next() !== 'op')
+        throw 'op expected'
+
     let name = tokensStream.next()
 
+    if (name === 'prefix') {
+        type = 'prefix'
 
+        name = tokensStream.next()
+    }
+
+    if (name.type !== 'str')
+        throw 'operator name expected'
+
+    let precedence = tokensStream.next()
+
+    if (precedence.type !== 'num')
+        throw 'Expected operator precedence'
 
     if (tokensStream.next() !== '(')
         throw 'Expected ('
 
-
-
-
-    let returnExpr = null
     let args = []
 
     while (tokensStream.peek() !== ')' && tokensStream.eof() === false) {
@@ -130,14 +223,6 @@ function parseFunction(tokensStream) {
         args.push(ast)
 
         if (tokensStream.peek() === ')') {
-            //tokensStream.next()
-
-            // return {
-            //     type: 'func',
-            //     name: name.name,
-            //     arguments
-            // }
-
             continue
         }
 
@@ -151,18 +236,7 @@ function parseFunction(tokensStream) {
         tokensStream.next()
     }
 
-
     tokensStream.next()
-    //
-    //
-    //
-    //
-    // console.log(arguments)
-    //
-    // if (tokensStream.next() !== ')')
-    //     throw 'Expected )'
-
-    //let body = parseCodeBlock()
 
     if (tokensStream.next() !== '{')
         throw 'Expected {'
@@ -187,9 +261,65 @@ function parseFunction(tokensStream) {
     if (tokensStream.next() !== '}')
         throw 'Expected }'
 
+    OPERATORS[name.value] = precedence.value
+    TEST[name.value] = type
 
+    return {
+        type: 'operator',
+        args,
+        name: name.value,
+        body
+    }
 
+}
 
+// func $func_name$ ($var$, ...) { ... }
+function parseFunction(tokensStream) {
+    let name = tokensStream.next()
+
+    if (tokensStream.peek() === '.')
+        return parseFunctionPrototype(tokensStream, name)
+
+    if (tokensStream.next() !== '(')
+        throw 'Expected ('
+
+    let returnExpr = null
+    let args = []
+
+    while (tokensStream.peek() !== ')' && tokensStream.eof() === false) {
+        let ast = parseInfixExpr(tokensStream)
+
+        args.push(ast)
+
+        if (tokensStream.peek() === ')') {
+            continue
+        }
+
+        if (
+            tokensStream.peek() !== ',' &&
+            tokensStream.peek() !== ')'
+        ) {
+            throw 'expected ,'
+        }
+
+        tokensStream.next()
+    }
+
+    tokensStream.next()
+
+    if (tokensStream.next() !== '{')
+        throw 'Expected {'
+
+    let body = []
+
+    while (tokensStream.peek() !== '}' && tokensStream.eof() === false) {
+        let ast = parseTop(tokensStream)
+
+        body.push(ast)
+    }
+
+    if (tokensStream.next() !== '}')
+        throw 'Expected }'
 
     return {
         type: 'func',
@@ -198,6 +328,53 @@ function parseFunction(tokensStream) {
         body,
         returnExpr
         //expr
+    }
+}
+
+function parseFunctionPrototype(tokensStream, namespace) {
+    tokensStream.next()
+
+    let name = tokensStream.next()
+
+    if (name.type !== 'name')
+        throw 'expected name'
+
+    if (tokensStream.next() !== '(')
+        throw 'Expected ('
+
+    let args = []
+
+    while (tokensStream.peek() !== ')' && tokensStream.eof() === false) {
+        if (tokensStream.peek() === '...') {
+            args.push('...')
+            tokensStream.next()
+            continue
+        }
+        let ast = parseInfixExpr(tokensStream)
+
+        args.push(ast)
+
+        if (tokensStream.peek() === ')') {
+            continue
+        }
+
+        if (
+            tokensStream.peek() !== ',' &&
+            tokensStream.peek() !== ')'
+        ) {
+            throw 'expected ,'
+        }
+
+        tokensStream.next()
+    }
+
+    tokensStream.next()
+
+    return {
+        type: 'func_prototype',
+        arguments: args,
+        namespace: namespace.name,
+        name: name.name
     }
 }
 
@@ -244,12 +421,15 @@ function parsePrimary(tokensStream) {
     else if (tok.type && tok.type === 'name' && peek === '=') {
         return parseVariableEq(tokensStream, tok)
     }
-    else if (tok.type && tok.type === 'num' || tok.type === 'name' || tok.type === 'str' || tok.type === 'bool') {
-        return parseExpr(tokensStream, tok, 0)
+    else  if (tok.type && tok.type === 'num' || tok.type === 'name' || tok.type === 'str' || tok.type === 'bool') {
+        return tok
     }
-    //else  if (tok === 'var') {
+    // else if (tok.type && tok.type === 'num' || tok.type === 'name' || tok.type === 'str' || tok.type === 'bool') {
+    //     return parseExpr(tokensStream, tok, 0)
+    // }
+    // else  if (tok === 'var') {
     //    return parseVariable()
-    //}
+    // }
     else
         tokensStream.errorPrev()
 }

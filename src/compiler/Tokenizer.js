@@ -26,6 +26,13 @@ export function tokenize(code) {
         else if (isDigit(char)) {
             tokens.push(readNumber(input))
         }
+        else if (char === '\'') {
+            input.next()
+            tokens.push(
+                { type: "str", value: readTill(input, char => char !== '\'') }
+            )
+            input.next()
+        }
         else if (char === '[') {
             tokens.push('[')
             input.next()
@@ -34,26 +41,26 @@ export function tokenize(code) {
             tokens.push(']')
             input.next()
         }
-        else if (char === '>') {
-            tokens.push('>')
-            input.next()
-        }
-        else if (char === '<') {
-            tokens.push('<')
-            input.next()
-        }
-        else if (char === '+') {
-            tokens.push('+')
-            input.next()
-        }
-        else if (char === '/') {
-            tokens.push('/')
-            input.next()
-        }
-        else if (char === '*') {
-            tokens.push('*')
-            input.next()
-        }
+        // else if (char === '>') {
+        //     tokens.push('>')
+        //     input.next()
+        // }
+        // else if (char === '<') {
+        //     tokens.push('<')
+        //     input.next()
+        // }
+        // else if (char === '+') {
+        //     tokens.push('+')
+        //     input.next()
+        // }
+        // else if (char === '/') {
+        //     tokens.push('/')
+        //     input.next()
+        // }
+        // else if (char === '*') {
+        //     tokens.push('*')
+        //     input.next()
+        // }
         else if (char === ',') {
             tokens.push(',')
             input.next()
@@ -78,6 +85,9 @@ export function tokenize(code) {
             tokens.push(';')
             input.next()
         }
+        else if (char === 'o') {
+            tokens.push(readStr(input, 'op'))
+        }
         else if (char === 'v') {
             tokens.push(readStr(input, 'var'))
         }
@@ -89,6 +99,9 @@ export function tokenize(code) {
         }
         else if (char === 'r') {
             tokens.push(readStr(input, 'return'))
+        }
+        else if (char === 'p') {
+            tokens.push(readStr(input, 'prefix'))
         }
         else if (char === 't') {
             let val = readStr(input, 'true')
@@ -112,20 +125,28 @@ export function tokenize(code) {
             }
         }
         else if (char === '=') {
-            let val = readStr(input, '==')
+            let val = readStr(input, '==', true)
 
-            if (val === '===')
-                tokens.push('===')
-            else if (val.name === '=')
+            if (val.name === '=')
                 tokens.push('=')
             else
                 tokens.push(val)
         }
-        else if (char === '!') {
-            tokens.push(readStr(input, '!='))
-        }
+        // else if (char === '!') {
+        //     tokens.push(readStr(input, '!='))
+        // }
         else if (char === 'w') {
             tokens.push(readStr(input, 'while'))
+        }
+        else if (char === '.') {
+            let val = readStr(input, '...', true)
+
+            if (val === '...')
+                tokens.push('...')
+            else if (val.name === '.')
+                tokens.push('.')
+            else
+                tokens.push(val)
         }
         else if (char === '"') {
             input.next()
@@ -137,9 +158,29 @@ export function tokenize(code) {
         else if (isWhitespace()) {
             readTill(input, isWhitespace)
         }
-        else {
-            let name = readTill(input, isOperator)
+        else if (isLetter(char)) {
+            //let name = readTill(input, isOperator)
+            let name = readTill(input, ch => {
+                return (
+                    isLetter(ch) || isDigit(ch)
+                )
+            })
 
+            tokens.push({
+                type: 'name',
+                name
+            })
+        }
+        else {
+            let name = readTill(input, ch => {
+                return (
+                    ch !== ' ' &&
+                    ch !== '.' &&
+                    isLetter(ch) === false &&
+                    isDigit(ch) === false &&
+                    isOperator(ch)
+                )
+            })
             tokens.push({
                 type: 'name',
                 name
@@ -152,7 +193,7 @@ export function tokenize(code) {
     return tokens
 }
 
-function readStr(input, str) {
+function readStr(input, str, noForwardParsing) {
     let i = 0
 
     while (!input.eof() && input.peek() === str[i]) {
@@ -162,7 +203,10 @@ function readStr(input, str) {
 
     let result = str.slice(0, i)
 
-    let name = readTill(input, isOperator)
+    let name = ''
+
+    if (noForwardParsing !== true)
+        name = readTill(input, isOperator)
 
     result = result + name
 
@@ -196,12 +240,19 @@ function isOperator(char) {
         char !== ']' &&
         char !== '(' &&
         char !== ')' &&
-        char !== '+' &&
-        char !== '*' &&
+        //char !== '+' &&
+        //char !== '*' &&
         char !== ']' &&
         char !== '[' &&
+        char !== '.' &&
         !isWhitespace(char)
     )
+}
+
+function isLetter(ch) {
+    let chCode = ch.charCodeAt(0)
+
+    return (chCode >= 97 && chCode <= 122) || (chCode >= 65 && chCode <= 90)
 }
 
 function isDigit(char) {
@@ -215,7 +266,6 @@ function readTill(input, condition) {
         str += input.next()
     }
 
-
     return str
 }
 
@@ -223,7 +273,6 @@ function readNumber(input, ch = '', isNegative = false) {
     let hasDot = false
     let negative = isNegative
     let isName = false
-
 
     let number = readTill(input, char => {
         if (char === '-') {
@@ -234,18 +283,27 @@ function readNumber(input, ch = '', isNegative = false) {
             return true
         }
         else if (char === '.') {
-            if (hasDot) return false;
-            hasDot = true;
-            return true;
+            if (hasDot) return false
+            hasDot = true
+            return true
         }
         else if (isDigit(char) === true)
             return isDigit(char)
-        else if (!isWhitespace(char) && !isOperator(char) && char !== '(' && char !== ')') {
+        else if (
+            !isWhitespace(char) &&
+            !isOperator(char) &&
+            char !== '(' &&
+            char !== ')' &&
+            isLetter(char)
+        ) {
             isName = true
 
             return true
         }
+
+        return false
     })
+
 
     if (isName)
         return { type: 'name', name: ch + number}
