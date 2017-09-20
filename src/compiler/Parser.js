@@ -34,12 +34,16 @@ function getOperatorPrecedence(operator) {
         return PRECEDENCY[operator]
     else if (operator.type === 'name')
         return OPERATORS[operator.name]
+    else if (operator.type === 'operator')
+        return OPERATORS[operator.name]
 }
 
 function getOperator(operator) {
     if (typeof operator === 'string')
         return operator
     else if (operator.type === 'name')
+        return operator.name
+    else if (operator.type === 'operator')
         return operator.name
 }
 
@@ -85,8 +89,36 @@ function parseExpr(tokensStream, lhs, min_precedence) {
         //     continue
         // }
 
+        if (lhs.type && lhs.type === 'operator' && TEST[getOperator(lhs)] === 'prefix') {
+            //console.log(123123123, lhs, lookahead, min_precedence)
+            if (getOperatorPrecedence(lhs) < min_precedence)
+                return lhs
+
+            tokensStream.next()
+            //let nextOp = parsePrimary(tokensStream)
+            let nextOp = tokensStream.peek()
+
+
+            if (getOperatorPrecedence(lhs) < getOperatorPrecedence(nextOp)) {
+                console.log('petooh')
+
+                lookahead = parseExpr(tokensStream, lookahead, getOperatorPrecedence(lhs) + 1)
+            }
+
+
+            lhs = {
+                type: 'prefix_expr',
+                expr: {
+                    type: lhs,
+                    right: lookahead
+                }
+            }
+            continue
+        }
+
+
         if (lookahead.type) {
-            if (lookahead.type === 'name') {
+            if (lookahead.type === 'operator') {
                 if (OPERATORS[lookahead.name] === undefined) {
                     //throw new Error('Unknown operator ' + lookahead.name)
                     //throw new Error('Unknown operator ' + lookahead.name)
@@ -108,6 +140,28 @@ function parseExpr(tokensStream, lhs, min_precedence) {
         }
 
 
+        console.log(lhs, lookahead, TEST[getOperator(lookahead)])
+        console.log(getOperatorPrecedence(lookahead), min_precedence)
+
+
+        if (TEST[getOperator(lookahead)] === 'postfix') {
+            if (getOperatorPrecedence(lookahead) < min_precedence)
+                return lhs
+
+            tokensStream.next()
+            console.log(123)
+            return {
+                type: 'postfix_expr',
+                expr: {
+                    type: lookahead,
+                    left: lhs
+                }
+            }
+        }
+
+
+
+
         if (lookahead.type === undefined && getOperatorPrecedence(lookahead) < min_precedence) {
             return lhs
         }
@@ -119,6 +173,7 @@ function parseExpr(tokensStream, lhs, min_precedence) {
         tokensStream.next()
 
         let rhs = parsePrimary(tokensStream)
+
 
         //console.log(rhs)
 
@@ -202,6 +257,11 @@ function parseOperatorDeclaration(tokensStream) {
 
         name = tokensStream.next()
     }
+     if (name === 'postfix') {
+            type = 'postfix'
+
+            name = tokensStream.next()
+     }
 
     if (name.type !== 'str')
         throw 'operator name expected'
@@ -410,20 +470,36 @@ function parsePrimary(tokensStream) {
         return parseBlock(tokensStream)
     if (tok === '[')
         return parseArray(tokensStream)
-    else if (tok.type && tok.type === 'name' && peek === '(') {
+    else if (tok.type && tok.type === 'name' && peek && peek === '(') {
         if (tokensStream.peek() === '(')
             return parseFunctionCall(tokensStream, tok)
     }
-    else if (tok.type && tok.type === 'name' && peek === '[') {
+    else if (tok.type && tok.type === 'name' && peek && peek === '[') {
         if (tokensStream.peek() === '[')
             return parseArrayAccess(tokensStream, tok)
     }
-    else if (tok.type && tok.type === 'name' && peek === '=') {
+    else if (tok.type && tok.type === 'name' && peek && peek === '=') {
         return parseVariableEq(tokensStream, tok)
     }
-    else  if (tok.type && tok.type === 'num' || tok.type === 'name' || tok.type === 'str' || tok.type === 'bool') {
+    // else if (tok.type && tok.type === 'operator') {
+    //     if (TEST[getOperator(tok)] === 'prefix') {
+    //         //tokensStream.next()
+    //
+    //         return {
+    //             type: 'prefix_expr',
+    //             expr: {
+    //                 type: tok,
+    //                 right: parsePrimary(tokensStream)
+    //             }
+    //         }
+    //     }
+    //
+    //     return tok
+    // }
+    else  if (tok.type && tok.type === 'num' || tok.type === 'name' || tok.type === 'str' || tok.type === 'bool' || tok.type === 'operator') {
         return tok
     }
+
     // else if (tok.type && tok.type === 'num' || tok.type === 'name' || tok.type === 'str' || tok.type === 'bool') {
     //     return parseExpr(tokensStream, tok, 0)
     // }

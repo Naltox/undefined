@@ -6,7 +6,7 @@ import SourceCode from "./SourceCode";
 
 
 let code = `
-op prefix '!' 10 (lhs, rhs) {
+op prefix '!' 30 (lhs, rhs) {
     return 1
 }
 
@@ -14,8 +14,13 @@ op '+' 20 (lhs, rhs) {
     return 1
 }
 
- !1 + !1
+op postfix '++' 31 (lhs, rhs) {
+    return 1
+}
 
+1+ !1
+
+ 
 `
 
 // let code = `

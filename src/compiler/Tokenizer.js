@@ -101,7 +101,18 @@ export function tokenize(code) {
             tokens.push(readStr(input, 'return'))
         }
         else if (char === 'p') {
-            tokens.push(readStr(input, 'prefix'))
+            let val = readStr(input, 'prefix')
+
+            if (val === 'prefix') {
+                tokens.push('prefix')
+            }
+            else if (val.name === 'postfix') {
+                tokens.push('postfix')
+            }
+            else
+                tokens.push(val)
+            //postfix
+            //tokens.push(readStr(input, 'prefix'))
         }
         else if (char === 't') {
             let val = readStr(input, 'true')
@@ -182,7 +193,7 @@ export function tokenize(code) {
                 )
             })
             tokens.push({
-                type: 'name',
+                type: 'operator',
                 name
             })
         }
