@@ -39,9 +39,9 @@ function getOperatorPrecedence(operator) {
 }
 
 function getOperator(operator) {
-    if (typeof operator === 'string')
-        return operator
-    else if (operator.type === 'name')
+    // if (typeof operator === 'string')
+    //     return operator
+     if (operator.type === 'name')
         return operator.name
     else if (operator.type === 'operator')
         return operator.name
@@ -73,21 +73,6 @@ function parseExpr(tokensStream, lhs, min_precedence) {
             return lhs
 
 
-
-        // if (lhs.name && TEST[lhs.name] !== undefined && TEST[lhs.name] === 'prefix' ) {
-        //     tokensStream.next()
-        //
-        //     lhs = {
-        //         type: 'expr',
-        //         exr: {
-        //             type: { type:'operator', name: getOperator(lhs) },
-        //             //type: { type:'operator', name: getOperator(lookahead) },
-        //             //left: lhs,
-        //             right: lookahead
-        //         }
-        //     }
-        //     continue
-        // }
 
         if (lhs.type && lhs.type === 'operator' && TEST[getOperator(lhs)] === 'prefix') {
             //console.log(123123123, lhs, lookahead, min_precedence)
@@ -121,9 +106,9 @@ function parseExpr(tokensStream, lhs, min_precedence) {
             if (lookahead.type === 'operator') {
                 if (OPERATORS[lookahead.name] === undefined) {
                     //throw new Error('Unknown operator ' + lookahead.name)
-                    //throw new Error('Unknown operator ' + lookahead.name)
+                    throw new Error('Unknown operator ' + lookahead.name)
 
-                    return lhs
+                   // return lhs
                 }
                 else {
                      // lookahead = {
@@ -243,6 +228,9 @@ function parseExpr(tokensStream, lhs, min_precedence) {
         }
 
 
+        if (getOperator(lookahead) === undefined) {
+            throw new Error('Unknown operator ' + lookahead)
+        }
         lhs = {
             type: 'expr',
             expr: {
@@ -378,6 +366,7 @@ function parseOperatorDeclaration(tokensStream) {
 
     return {
         type: 'operator',
+        operatorType: type,
         args,
         name: name.value,
         body

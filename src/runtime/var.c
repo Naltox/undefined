@@ -5,23 +5,23 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <zconf.h>
 #include "var.h"
 
 char* append(char* str, char* str_to_add) {
-    int strLength = strlen(str);
-    int need = strlen(str_to_add);
+    const size_t strLength = strlen(str);
+    const size_t need = strlen(str_to_add);
+
+    const size_t total = strLength + need + 1;
+
+    printf("str: %s, toAdd: %s, strL: %d, need: %d\n", str, str_to_add, strLength, need);
 
 
-    //printf("%d, %d", strLength, need);
+    //str = realloc(str, sizeof(size_t) * strLength + sizeof(size_t) * need);
+    str = realloc(str, total);
+    //strcat(str, str_to_add);
 
-//    char newStr[strLength + need];
+    memcpy(str + strLength, str_to_add, need + 1);
 
-    //strcat(newStr, str);
-
-
-    str = realloc(str, strLength + need);
-    strcat(str, str_to_add);
 
 
     return str;
@@ -29,13 +29,16 @@ char* append(char* str, char* str_to_add) {
 
 char* var2str(var v) {
     if (v.type == INTEGER_TYPE) {
-        //char *str = malloc(0);
-
         char* str;
 
         asprintf(&str, "%d", v.value.i);
 
-        //sprintf(str, "%d", v.value.i);
+        return str;
+    }
+    if (v.type == FLOAT_TYPE) {
+        char* str;
+
+        asprintf(&str, "%.17f", v.value.f);
 
         return str;
     }
@@ -46,59 +49,43 @@ char* var2str(var v) {
         if (v.value.b == true)
             return "true";
         else
-            return  "false";
+            return "false";
     }
     if (v.type == NAN_TYPE)
         return  "NaN";
 
     if (v.type == ARRAY_TYPE) {
-        //char* str;
-        //char str[1024];
-        char* str = malloc(1);
+        char* str = calloc(1, sizeof(char));
 
-        //printf("[ ");
-
-        //asprintf(&str, "[");
+        printf("addr: %d\n", str);
 
         str = append(str, "[");
 
-        //strcat(str, "[");
+        var_array* ar = v.value.a;
 
-        //printf("%s", var2str(var_array_get(&v, 0)));
+        for(int i = 0; i < ar->used; i++) {
+            var item = var_array_get(&v, var_from_int(i));
 
-
-
-        for(int i = 0; i < v.value.ar->used; i++) {
-            //printf("%s%s", var2str(var_array_get(&v, i)), i == v.value.ar->used - 1 ? "" : ", ");
-
-            //printf("%s", var2str(var_array_get(&v, i)));
-            //printf("\n");
-
-            //asprintf(&str, "%s", var2str(var_array_get(&v, i)));
-
-            str = append(str, var2str(var_array_get(&v, varFromInt(i))));
-            str = append(str, i == v.value.ar->used - 1 ? "" : ", ");
-            //strcat(str, var2str(var_array_get(&v, i)));
-            //strcat(str, i == v.value.ar->used - 1 ? "" : ", ");
-
-
-            //asprintf(&str, "%s",  i == v.value.ar->used - 1 ? "" : ", ");
-
-
-            //strcat(str, ", ");
+            str = append(str, var2str(item));
+            str = append(str, i == ar->used - 1 ? "" : ", ");
         }
 
-        //strcat(str, "]");
-
         str = append(str, "]");
-
-        //asprintf(&str, "]");
 
         return str;
     }
 }
 
-var varFromInt(int i) {
+extern inline var var_from_bool(bool b) {
+    var v;
+
+    v.value.b = b;
+    v.type = BOOLEAN_TYPE;
+
+    return  v;
+}
+
+extern inline var var_from_int(int i) {
     var v;
 
     v.value.i = i;
@@ -107,19 +94,71 @@ var varFromInt(int i) {
     return  v;
 }
 
-std_print(int num, ...) {
-    va_list valist;
+extern inline var var_from_float(double f) {
+    var v;
 
-    va_start(valist, num);
+    v.value.f = f;
+    v.type = FLOAT_TYPE;
 
-    for (int i = 0; i < num; i++) {
-        printf("%s", var2str(va_arg(valist, var)));
+    return v;
+}
 
-        if (i != num - 1)
-            printf(", ");
+extern inline var var_from_string(char *str) {
+    var v;
+
+    v.value.s = str;
+    v.type = STRING_TYPE;
+
+    return  v;
+}
+
+extern inline var var_from_pointer(void* p, int type) {
+    var v;
+
+    v.value.p = p;
+    v.extra = type;
+    v.type = POINTER_TYPE;
+
+    return  v;
+}
+
+extern inline var var_nan() {
+    var v;
+
+    v.type = NAN_TYPE;
+
+    return  v;
+}
+
+extern inline var var_null() {
+    var v;
+
+    v.type = NULL_TYPE;
+
+    return  v;
+}
+
+extern inline bool var_is_true(var v) {
+    if (v.type == INTEGER_TYPE) {
+        return v.value.i > 0;
     }
 
-    printf("\n");
+    if (v.type == BOOLEAN_TYPE) {
+        return v.value.b;
+    }
 
-    va_end(valist);
+    return false;
+}
+
+extern inline bool var2bool(var v) {
+    if (v.type == BOOLEAN_TYPE)
+        return v.value.b;
+
+    if (v.type == INTEGER_TYPE)
+        return v.value.i > 0;
+
+    if (v.type == STRING_TYPE)
+        return true;
+
+    return false;
 }

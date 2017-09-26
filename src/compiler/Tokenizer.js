@@ -1,37 +1,33 @@
 import TextInputStream from "./TextInputStream";
 
+let OPERATORS = []
 
 export function tokenize(code) {
     let input = new TextInputStream(code)
 
     let tokens = []
 
+    let curOpState = 'INIT'
+
     while (input.eof() === false) {
         readTill(input, isWhitespace)
         let char = input.peek()
 
-        if (char === '-') {
-            input.next()
-
-            if (isDigit(input.peek())) {
-                let peek = input.peek()
-                input.next()
-                tokens.push(readNumber(input, peek, true))
-            }
-            else {
-                tokens.push('-')
-                input.next()
-            }
-        }
-        else if (isDigit(char)) {
+        // if (char === '-') {
+        //     input.next()
+        //
+        //     if (isDigit(input.peek())) {
+        //         let peek = input.peek()
+        //         input.next()
+        //         tokens.push(readNumber(input, peek, true))
+        //     }
+        //     else {
+        //         tokens.push('-')
+        //         input.next()
+        //     }
+        // }
+         if (isDigit(char)) {
             tokens.push(readNumber(input))
-        }
-        else if (char === '\'') {
-            input.next()
-            tokens.push(
-                { type: "str", value: readTill(input, char => char !== '\'') }
-            )
-            input.next()
         }
         else if (char === '[') {
             tokens.push('[')
@@ -61,6 +57,21 @@ export function tokenize(code) {
         //     tokens.push('*')
         //     input.next()
         // }
+         else if (char === '\'') {
+             input.next()
+
+             let val = readTill(input, char => char !== '\'')
+             tokens.push(
+                 { type: "str", value: val  }
+             )
+
+             if (curOpState === 'WAITING_TYPE') {
+                 OPERATORS.push(val)
+                 curOpState = 'INIT'
+             }
+
+             input.next()
+         }
         else if (char === ',') {
             tokens.push(',')
             input.next()
@@ -86,13 +97,26 @@ export function tokenize(code) {
             input.next()
         }
         else if (char === 'o') {
-            tokens.push(readStr(input, 'op'))
+            let val = readStr(input, 'op')
+
+            if (val === 'op') {
+                curOpState = 'WAITING_TYPE'
+            }
+
+            tokens.push(val)
         }
         else if (char === 'v') {
             tokens.push(readStr(input, 'var'))
         }
         else if (char === 'i') {
-            tokens.push(readStr(input, 'if'))
+            let val = readStr(input, 'if')
+
+             if (val === 'if')
+                 tokens.push('if')
+             else
+                 tokens.push(val)
+            // console.log(val, 123, input.peek())
+            //tokens.push(readStr(input, 'if'))
         }
         else if (char === 'e') {
             tokens.push(readStr(input, 'else'))
@@ -140,8 +164,28 @@ export function tokenize(code) {
 
             if (val.name === '=')
                 tokens.push('=')
+            else if (val === '==') {
+                tokens.push({
+                    type: 'operator',
+                    name: '=='
+                })
+            }
             else
                 tokens.push(val)
+        }
+        else if (char === '/') {
+             let val = readStr(input, '//', true)
+
+
+             // console.log(123121313123)
+             // console.log(val)
+
+             if (val === '//') {
+                 let comment = readTill(input, ch => ch !== '\n')
+                 //console.log('COMMENT', comment)
+             }
+             else
+                 tokens.push(val)
         }
         // else if (char === '!') {
         //     tokens.push(readStr(input, '!='))
@@ -160,11 +204,19 @@ export function tokenize(code) {
                 tokens.push(val)
         }
         else if (char === '"') {
-            input.next()
-            tokens.push(
-                { type: "str", value: readTill(input, char => char !== '"') }
-            )
-            input.next()
+             input.next()
+
+             let val = readTill(input, char => char !== '\"')
+             tokens.push(
+                 { type: "str", value: val  }
+             )
+
+             if (curOpState === 'WAITING_TYPE') {
+                 OPERATORS.push(val)
+                 curOpState = 'INIT'
+             }
+
+             input.next()
         }
         else if (isWhitespace()) {
             readTill(input, isWhitespace)
@@ -173,7 +225,9 @@ export function tokenize(code) {
             //let name = readTill(input, isOperator)
             let name = readTill(input, ch => {
                 return (
-                    isLetter(ch) || isDigit(ch)
+                    isLetter(ch) ||
+                    isDigit(ch) ||
+                    ch === '_'
                 )
             })
 
@@ -183,6 +237,7 @@ export function tokenize(code) {
             })
         }
         else {
+            //console.log(OPERATORS, char)
             let name = readTill(input, ch => {
                 return (
                     ch !== ' ' &&
@@ -197,6 +252,7 @@ export function tokenize(code) {
                 name
             })
         }
+       // 1+-1
 
         readTill(input, isWhitespace)
     }
@@ -217,7 +273,11 @@ function readStr(input, str, noForwardParsing) {
     let name = ''
 
     if (noForwardParsing !== true)
-        name = readTill(input, isOperator)
+        name = readTill(input, ch => {
+            return (
+                isLetter(ch) || isDigit(ch) || ch === '_'
+            )
+        })
 
     result = result + name
 
@@ -256,6 +316,7 @@ function isOperator(char) {
         char !== ']' &&
         char !== '[' &&
         char !== '.' &&
+        char !== '"' &&
         !isWhitespace(char)
     )
 }
@@ -286,14 +347,14 @@ function readNumber(input, ch = '', isNegative = false) {
     let isName = false
 
     let number = readTill(input, char => {
-        if (char === '-') {
-            if (negative)
-                return false
-
-            negative = true
-            return true
-        }
-        else if (char === '.') {
+        // if (char === '-') {
+        //     if (negative)
+        //         return false
+        //
+        //     negative = true
+        //     return true
+        // }
+        if (char === '.') {
             if (hasDot) return false
             hasDot = true
             return true

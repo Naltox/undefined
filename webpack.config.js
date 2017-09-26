@@ -42,5 +42,6 @@ module.exports = {
             verbose: true,
             dry: false
         })
-    ]
+    ],
+    target: 'node'
 }

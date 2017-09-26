@@ -1,276 +1,122 @@
-#include <stdio.h>
-#include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "var.h"
-#include "var_array.h"
+#include "io.h"
+#include "std_math.h"
+#include "http.h"
+#include "buffer.h"
 
 
-var NaN() {
-    var v;
+void std_array_push(struct var* v, struct var value) {
+    var_array_push(v, value);
+}
+var std_array_pop(struct var* v) {
+    return var_array_pop(v);
+}
+var std_array_length(struct var* v) {
+    return var_array_length(v);
+}
+ 
+var user_handle_http_request(var request);
 
-    v.type = NAN_TYPE;
+char* handler(char* request) {
+    printf("Got request:\n%s\n\n", request);
 
-    return  v;
+    var response = user_handle_http_request(var_from_string(request));
+
+    //printf("Got response:\n%s\n\n\n", var2str(response));
+
+    char* resp_str;
+
+    asprintf(&resp_str, "HTTP/1.1 400 Bad Request\nContent-Type: text/html\n\n%s", var2str(response));
+
+    return resp_str;
 }
 
 
 
-var varFromString(char* str) {
-    var v;
-
-    v.value.s = str;
-    v.type = STRING_TYPE;
-
-    return  v;
-}
-
-var varFromBool(bool b) {
-    var v;
-
-    v.value.b = b;
-    v.type = BOOLEAN_TYPE;
-
-    return  v;
-}
-
-var newArray() {
-    var v;
-
-    var_array* arr = malloc(sizeof(var_array));
-
-    v.value.ar = arr;
-    v.type = ARRAY_TYPE;
-
-    var_array_init(&v);
-
-    return v;
-}
-
-bool isTrue(var v) {
-    if (v.type == INTEGER_TYPE) {
-        return v.value.i > 0;
-    }
-
-    if (v.type == BOOLEAN_TYPE) {
-        return v.value.b;
-    }
-
-    return false;
-}
-
-var readLine() {
-    char* line = malloc(1024);
-    scanf(" %[^\n]s",line);
-
-    return varFromString(line);
-}
-
-int getInt(var v) {
-    return  v.value.i;
-}
 
 
 
-void freeTempString(var v, char* str) {
-    if (
-        v.type != STRING_TYPE &&
-        v.type != BOOLEAN_TYPE &&
-        v.type != NAN_TYPE
-    ) {
-        free(str);
-    }
-}
-
-var std_plus(var lhs, var rhs) {
-    if (lhs.type == INTEGER_TYPE && rhs.type == INTEGER_TYPE) {
-        return varFromInt(lhs.value.i + rhs.value.i);
-    }
-    if (lhs.type == STRING_TYPE && rhs.type == INTEGER_TYPE) {
-        char* rhsStr = var2str(rhs);
 
 
-        char* new_str;
-        if((new_str = malloc(strlen(lhs.value.s)+strlen(rhsStr)+1)) != NULL){
-            new_str[0] = '\0';   // ensures the memory is an empty string
-            strcat(new_str,lhs.value.s);
-            strcat(new_str,rhsStr);
-
-            //var result = varFromString(new_str);
-
-            return varFromString(new_str);
-        } else {
-            printf("malloc failed!\n");
-        }
-    }
-    if (lhs.type == INTEGER_TYPE && rhs.type == STRING_TYPE) {
-        char* lhsStr = var2str(lhs);
 
 
-        char* new_str;
-        if((new_str = malloc(strlen(rhs.value.s)+strlen(lhsStr)+1)) != NULL){
-            new_str[0] = '\0';   // ensures the memory is an empty string
-            strcat(new_str,lhsStr);
-            strcat(new_str,rhs.value.s);
-
-            //var result = varFromString(new_str);
-
-            return varFromString(new_str);
-        } else {
-            printf("malloc failed!\n");
-        }
-    }
-    if (lhs.type == STRING_TYPE && rhs.type == STRING_TYPE) {
-        char* new_str;
-        if((new_str = malloc(strlen(lhs.value.s)+strlen(lhs.value.s)+1)) != NULL){
-            new_str[0] = '\0';   // ensures the memory is an empty string
-            strcat(new_str,lhs.value.s);
-            strcat(new_str,rhs.value.s);
-
-            //var result = varFromString(new_str);
-
-            return varFromString(new_str);
-        } else {
-            printf("malloc failed!\n");
-        }
-    }
-    if (lhs.type == BOOLEAN_TYPE && rhs.type == BOOLEAN_TYPE) {
-        return varFromBool(lhs.value.b + rhs.value.b);
-    }
-}
-
-var std_minus(var lhs, var rhs) {
-    if (lhs.type == INTEGER_TYPE && rhs.type == INTEGER_TYPE) {
-        return varFromInt(lhs.value.i - rhs.value.i);
-    }
-    if (lhs.type == STRING_TYPE || rhs.type == STRING_TYPE) {
-        return  NaN();
-    }
-    if (lhs.type == BOOLEAN_TYPE && rhs.type == BOOLEAN_TYPE) {
-        return varFromBool(lhs.value.b - rhs.value.b);
-    }
-}
-
-var std_eq2(var lhs, var rhs) {
-    if (lhs.type == INTEGER_TYPE && rhs.type == INTEGER_TYPE) {
-        return varFromBool(lhs.value.i == rhs.value.i);
-    }
-    if (lhs.type == STRING_TYPE || rhs.type == STRING_TYPE) {
-        return  varFromBool(false);
-    }
-    if (lhs.type == BOOLEAN_TYPE && rhs.type == BOOLEAN_TYPE) {
-        return varFromBool(lhs.value.b == rhs.value.b);
-    }
-
-    return varFromBool(false);
-}
-
-var std_notEq2(var lhs, var rhs) {
-    if (lhs.type == INTEGER_TYPE && rhs.type == INTEGER_TYPE) {
-        return varFromBool(lhs.value.i != rhs.value.i);
-    }
-    if (lhs.type == STRING_TYPE || rhs.type == STRING_TYPE) {
-        return  varFromBool(true);
-    }
-    if (lhs.type == BOOLEAN_TYPE && rhs.type == BOOLEAN_TYPE) {
-        return varFromBool(lhs.value.b != rhs.value.b);
-    }
-
-    return varFromBool(true);
-}
-
-var std_dev(var lhs, var rhs) {
-    return varFromInt(lhs.value.i / rhs.value.i);
-}
-
-var std_mul(var lhs, var rhs) {
-    if (lhs.type == INTEGER_TYPE && rhs.type == INTEGER_TYPE) {
-        return varFromInt(lhs.value.i * rhs.value.i);
-    }
-
-    return  NaN();
-}
-
-var std_less(var lhs, var rhs) {
-    if (lhs.type == INTEGER_TYPE && rhs.type == INTEGER_TYPE) {
-        return varFromBool(lhs.value.i < rhs.value.i);
-    }
-
-    return varFromBool(false);
-}
-
-var std_greater(var lhs, var rhs) {
-    if (lhs.type == INTEGER_TYPE && rhs.type == INTEGER_TYPE) {
-        return varFromBool(lhs.value.i > rhs.value.i);
-    }
-
-    return varFromBool(false);
-}
-
-var std_and(var lhs, var rhs) {
-    return varFromBool(true);
-}
-
-
-static inline var op_plus(var lhs, var rhs) {
+static inline var op_infix_plus(var lhs, var rhs) {
     return std_plus(lhs, rhs);
 }
-static inline var op_minus(var lhs, var rhs) {
+static inline var op_infix_minus(var lhs, var rhs) {
     return std_minus(lhs, rhs);
 }
-static inline var op_and(var lhs, var rhs) {
+static inline var op_infix_and(var lhs, var rhs) {
     return std_and(lhs, rhs);
 }
-static inline var op_dev(var lhs, var rhs) {
-    return std_dev(lhs, rhs);
+static inline var op_infix_or(var lhs, var rhs) {
+    return std_or(lhs, rhs);
 }
-static inline var op_mul(var lhs, var rhs) {
+static inline var op_infix_mul(var lhs, var rhs) {
     return std_mul(lhs, rhs);
 }
-static inline var op_less(var lhs, var rhs) {
+static inline var op_infix_dev(var lhs, var rhs) {
+    return std_dev(lhs, rhs);
+}
+static inline var op_infix_less(var lhs, var rhs) {
     return std_less(lhs, rhs);
 }
-static inline var op_greater(var lhs, var rhs) {
+static inline var op_infix_greater(var lhs, var rhs) {
     return std_greater(lhs, rhs);
 }
-static inline var op_pow(var lhs, var rhs) {
-    var i = varFromInt(0);
-    while (isTrue(op_less(i, op_minus(rhs, varFromInt(1))))) {
-        lhs = op_mul(lhs, lhs);
-        i = op_plus(i, varFromInt(1));
+static inline var op_infix_pow(var lhs, var rhs) {
+    var i = var_from_int(0);
+    while (var2bool(op_infix_less(i, op_infix_minus(rhs, var_from_int(1))))) {
+        lhs = op_infix_mul(lhs, lhs);
+        i = op_infix_plus(i, var_from_int(1));
     }
     return lhs;
 }
-static inline var op_eq2(var lhs, var rhs) {
+static inline var op_infix_eq2(var lhs, var rhs) {
     return std_eq2(lhs, rhs);
 }
-static inline var op_notEq2(var lhs, var rhs) {
+static inline var op_infix_notEq2(var lhs, var rhs) {
     return std_notEq2(lhs, rhs);
+}
+static inline var op_prefix_not(var rhs) {
+    return std_not(rhs);
+}
+static inline var op_postfix_incr(var lhs) {
+    return std_incr(lhs);
+}
+static inline var op_postfix_decr(var lhs) {
+    return std_decr(lhs);
+}
+static inline var op_prefix_minus(var rhs) {
+    return std_negative(rhs);
+}
+static inline var op_infix_shiftRight(var lhs, var rhs) {
+    return std_shiftRight(lhs, rhs);
+}
+static inline var op_infix_shiftLeft(var lhs, var rhs) {
+    return std_shiftLeft(lhs, rhs);
+}
+static inline var op_infix_bitwiseXOR(var lhs, var rhs) {
+    return std_bitwiseXOR(lhs, rhs);
+}
+static inline var op_infix_bitwiseAND(var lhs, var rhs) {
+    return std_bitwiseAND(lhs, rhs);
+}
+static inline var op_infix_bitwiseOR(var lhs, var rhs) {
+    return std_bitwiseOR(lhs, rhs);
+}
+
+var user_handle_http_request(var request) {
+    return op_infix_plus(op_infix_plus(var_from_string("{\"randomInt\":"), std_rand()), var_from_string("}"));
 }
 
 
 
 int main() {
-    var a = var_array_create_inline(5, varFromInt(1), varFromInt(2), varFromBool(true), varFromString("qwe"), varFromInt(1.5));
-    std_print(1, a);
-    std_print(1, op_pow(varFromInt(2), varFromInt(2)));
-    std_print(1, op_greater(varFromInt(1), varFromInt(2)));
-    std_print(1, op_greater(varFromInt(2), varFromInt(1)));
-    std_print(1, op_eq2(varFromInt(1), varFromInt(1)));
-    std_print(1, op_notEq2(varFromInt(1), varFromInt(1)));
+    var fd = std_fopen(var_from_string("/Users/altox/Desktop/test.txt"), var_from_string("r"));
+    io_print(1, std_fgets(fd, var_from_int(3)));
+    io_print(1, std_fgets(fd, var_from_int(3)));
 }
-
-
-//int main() {
-//    printf("Hello, World!\n");
-//
-//
-//
-//    printf("\n");
-//    printf("\n");
-//
-//    var a = var_array_create_inline(4, varFromInt(1), varFromInt(2), varFromBool(true), varFromString("qwe"));
-//    std_print(1, a);
-//
-//    return 0;
-//}

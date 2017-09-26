@@ -5,14 +5,22 @@ const OPERATOR_ALIASES = {
     '-': 'minus',
     '~': 'tilda',
     '&&': 'and',
+    '||': 'or',
     '/': 'dev',
     '*': 'mul',
-    '^': 'pow',
+    '**': 'pow',
     '<': 'less',
     '>': 'greater',
     '==': 'eq2',
     '!=': 'notEq2',
-    '!': 'not'
+    '!': 'not',
+    '++': 'incr',
+    '--': 'decr',
+    '>>': 'shiftRight',
+    '<<': 'shiftLeft',
+    '^': 'bitwiseXOR',
+    '&': 'bitwiseAND',
+    '|': 'bitwiseOR',
 }
 
 const FUNCTIONS = {
@@ -79,7 +87,7 @@ export default function compile(ast, tab = 0) {
 function compileOperator(ast, tab) {
     let code = new SourceCode()
 
-    code.add(`static inline var op_${OPERATOR_ALIASES[ast.name]}(${ast.args.map(a => 'var ' + compileExpr(a)).join(', ')}) {`)
+    code.add(`static inline var op_${ast.operatorType}_${OPERATOR_ALIASES[ast.name]}(${ast.args.map(a => 'var ' + compileExpr(a)).join(', ')}) {`)
     code.append(compile(ast.body, tab + 1).code)
 
 
@@ -126,7 +134,7 @@ function compileExpr(expression) {
         if (expression.type === 'if') {
             let code = new SourceCode()
 
-            code.add(`if (isTrue(${compileExpr(expression.expr)})) {`)
+            code.add(`if (var2bool(${compileExpr(expression.expr)})) {`)
             code.append(compile(expression.body).code, 1)
             code.add('}')
 
@@ -141,12 +149,11 @@ function compileExpr(expression) {
         if (expression.type === 'while') {
             let code = new SourceCode()
 
-            code.add(`while (isTrue(${compileExpr(expression.expr)})) {`)
+            code.add(`while (var2bool(${compileExpr(expression.expr)})) {`)
             code.append(compile(expression.body).code, 1)
             code.add('}')
 
             return code
-            //return `while (isTrue(${compileExpr(expression.expr)})) {\n${compile(expression.body).code}\n}`
         }
         if (expression.type === 'array') {
             return `var_array_create_inline(${expression.values.length}${expression.values.length > 0 ? ', ' : ''}${expression.values.map(v => `${compileExpr(v)}`).join(', ')})`
@@ -155,16 +162,19 @@ function compileExpr(expression) {
             return compileFuncCall(expression)
         }
         if (expression.type === 'num') {
-            return `varFromInt(${expression.value})`
+            if (expression.value % 1 === 0)
+                return `var_from_int(${expression.value})`
+
+            return `var_from_float(${expression.value})`
         }
         if (expression.type === 'str') {
-            return `varFromString("${expression.value}")`
+            return `var_from_string("${expression.value}")`
         }
         if (expression.type === 'bool') {
             if (expression.value === true)
-                return 'varFromBool(true)'
+                return 'var_from_bool(true)'
             else
-                return 'varFromBool(false)'
+                return 'var_from_bool(false)'
         }
         if (expression.type === 'array_accessor') {
             return `var_array_get_recursive(&${compileExpr(expression.variable)}, ${expression.expr.length}, ${expression.expr.map(e => compileExpr(e)).join(', ')})`
@@ -213,14 +223,14 @@ function compileExpr(expression) {
         }
         if (expression.type.type && expression.type.type === 'operator') {
             if (expression.right && !expression.left) {
-                return `op_${OPERATOR_ALIASES[expression.type.name]}(${compileExpr(expression.right)})`
+                return `op_prefix_${OPERATOR_ALIASES[expression.type.name]}(${compileExpr(expression.right)})`
             }
 
             if (expression.left && !expression.right) {
-                return `op_${OPERATOR_ALIASES[expression.type.name]}(${compileExpr(expression.left)})`
+                return `op_postfix_${OPERATOR_ALIASES[expression.type.name]}(${compileExpr(expression.left)})`
             }
 
-            return `op_${OPERATOR_ALIASES[expression.type.name]}(${compileExpr(expression.left)}, ${compileExpr(expression.right)})`
+            return `op_infix_${OPERATOR_ALIASES[expression.type.name]}(${compileExpr(expression.left)}, ${compileExpr(expression.right)})`
         }
     }
 }
@@ -229,21 +239,6 @@ function compileFuncCall(call) {
 
     if (!FUNCTIONS[call.func.name])
         throw 'Unknown function ' + call.func.name
-    // if (call.func.name === 'print') {
-    //     return `var_print(${call.args.length}, ${call.args.map(a => `${compileExpr(a)}`).join(', ')})`
-    // }
-    //
-    // if (call.func.name === 'array_push') {
-    //     return `var_array_push(&${compileExpr(call.args[0])}, ${compileExpr(call.args[1])})`
-    // }
-    //
-    // if (call.func.name === 'readLine') {
-    //     if (call.args > 0)
-    //         throw 'errrrrrrr'
-    //
-    //
-    //     return `readLine()`
-    // }
 
     let func = FUNCTIONS[call.func.name]
 
@@ -252,6 +247,10 @@ function compileFuncCall(call) {
     else if (func.type === 'func_prototype') {
         if (func.arguments.length === 1 && func.arguments[0] === '...') {
             return `${func.namespace}_${call.func.name}(${call.args.length}, ${call.args.map(a => `${compileExpr(a)}`).join(', ')})`
+        }
+
+        if (call.func.name === 'array_push') {
+            return `${func.namespace}_${call.func.name}(&${compileExpr(call.args[0])}, ${compileExpr(call.args[1])})`
         }
 
         return `${func.namespace}_${call.func.name}(${call.args.map(a => `${compileExpr(a)}`).join(', ')})`

@@ -1,0 +1,142 @@
+func std.plus(lhs, rhs)
+func std.minus(lhs, rhs)
+func std.and(lhs, rhs)
+func std.or(lhs, rhs)
+func std.mul(lhs, rhs)
+func std.dev(lhs, rhs)
+func std.less(lhs, rhs)
+func std.greater(lhs, rhs)
+func std.eq2(lhs, rhs)
+func std.notEq2(rhs)
+func std.not(rhs)
+func std.incr(lhs)
+func std.decr(lhs)
+func std.negative(lhs)
+func std.shiftRight(lhs, rhs)
+func std.shiftLeft(lhs, rhs)
+func std.bitwiseXOR(lhs, rhs)
+func std.bitwiseAND(lhs, rhs)
+func std.bitwiseOR(lhs, rhs)
+
+
+op '+' 20 (lhs, rhs) {
+    return plus(lhs, rhs)
+}
+
+op '-' 20 (lhs, rhs) {
+    return minus(lhs, rhs)
+}
+
+op '&&' 20 (lhs, rhs) {
+    return and(lhs, rhs)
+}
+
+op '||' 20 (lhs, rhs) {
+    return or(lhs, rhs)
+}
+
+op '*' 40 (lhs, rhs) {
+    return mul(lhs, rhs)
+}
+
+op '/' 40 (lhs, rhs) {
+    return dev(lhs, rhs)
+}
+
+op '<' 10 (lhs, rhs) {
+    return less(lhs, rhs)
+}
+
+op '>' 10 (lhs, rhs) {
+    return greater(lhs, rhs)
+}
+
+op '**' 40 (lhs, rhs) {
+    var i = 0
+
+    while (i < rhs - 1) {
+        lhs = lhs * lhs
+        i = i + 1
+    }
+
+    return lhs
+}
+
+op '==' 10 (lhs, rhs) {
+    return eq2(lhs, rhs)
+}
+
+op '!=' 10 (lhs, rhs) {
+    return notEq2(lhs, rhs)
+}
+
+op prefix '!' 10 (rhs) {
+    return not(rhs)
+}
+
+op postfix '++' 10 (lhs) {
+    return incr(lhs)
+}
+
+op postfix '--' 10 (lhs) {
+    return decr(lhs)
+}
+
+op prefix '-' 20 (rhs) {
+    return negative(rhs)
+}
+
+op '>>' 20 (lhs, rhs) {
+    return shiftRight(lhs, rhs)
+}
+
+op '<<' 20 (lhs, rhs) {
+    return shiftLeft(lhs, rhs)
+}
+
+op '^' 20 (lhs, rhs) {
+    return bitwiseXOR(lhs, rhs)
+}
+
+op '&' 20 (lhs, rhs) {
+    return bitwiseAND(lhs, rhs)
+}
+
+op '|' 20 (lhs, rhs) {
+    return bitwiseOR(lhs, rhs)
+}
+
+func io.print(...)
+func io.read_line()
+
+func std.array_push(arr, value)
+func std.array_pop(arr)
+func std.array_length(arr)
+
+func std.parse_int(str)
+func std.parse_float(str)
+
+func std.fopen(filenath, path)
+func std.fclose(fd)
+func std.fputs(fd, str)
+func std.fgets(fd, num)
+
+func std.rand()
+
+func handle_http_request(request) {
+    return '{\"randomInt\":' + rand() + '}'
+}
+
+
+
+
+//fputs(fd, 'lol')
+
+//fclose(fd)
+
+
+var fd = fopen("/Users/altox/Desktop/test.txt", 'w+')
+
+print(fgets(fd, 3))
+
+
